@@ -1,6 +1,5 @@
 const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
 const cors = require('cors');
 
 const app = express();
@@ -11,39 +10,46 @@ app.use(express.json());
 
 // Function to fetch terms and conditions from the website
 const fetchTermsAndConditions = async (url) => {
+    let browser;
     try {
-        const { data } = await axios.get(url);
-        const $ = cheerio.load(data);
+        browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle0' });
+        console.log("Navigated to terms and conditions page");
 
         // Searching for terms and conditions link
-        const termsLink = $("a:contains('Terms'), a:contains('terms and conditions'), a:contains('Terms of Service')").attr('href');
+        const termsLink = await page.evaluate(() => {
+            const link = document.querySelector("a[href*='terms'], a[href*='conditions']");
+            console.log("Terms and conditions link found");
+            console.log(link.hrefS);
+            return link ? link.href : null;
+        });
+        console.log("Terms and conditions link found");
+        console.log(termsLink);
 
         if (termsLink) {
-            const fullLink = termsLink.startsWith('http') ? termsLink : new URL(termsLink, url).href;
-            const { data: termsPage } = await axios.get(fullLink);
-            const $terms = cheerio.load(termsPage);
-            
-            // Extract the body content
-            let bodyContent = $terms('body').html();
-
-            // Remove potential header
-            bodyContent = bodyContent.replace(/<header.*?<\/header>/is, '');
-
-            // Remove potential footer
-            bodyContent = bodyContent.replace(/<footer.*?<\/footer>/is, '');
-
-            // Remove scripts and style tags
-            bodyContent = bodyContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-            bodyContent = bodyContent.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-
-            // Convert HTML to plain text
-            const plainText = $terms(bodyContent).text();
+            await page.goto(termsLink, { waitUntil: 'networkidle0' });
+            console.log("Navigated to terms and conditions page");
+            // Extract the content
+            let content = await page.evaluate(() => {
+                console.log("Evaluating page content");
+                // First, try to find an element with 'main' in its id or class
+                const mainElement = document.querySelector('[id*="main" i], [class*="main" i]');
+                
+                if (mainElement) {
+                    console.log("Main element found");
+                    return mainElement.innerText;
+                } else {
+                    // If no 'main' element found, fall back to body content
+                    console.log("Main element not found");
+                    const elementsToRemove = document.querySelectorAll('header, footer, script, style');
+                    elementsToRemove.forEach(el => el.remove());
+                    return document.body.innerText;
+                }
+            });
 
             // Basic cleaning of the extracted text
-            const cleanedText = plainText
-                .replace(/\s+/g, ' ')
-                .replace(/\n+/g, '\n')
-                .trim();
+            const cleanedText = content.trim();
 
             return cleanedText || "Couldn't extract Terms and Conditions content.";
         } else {
@@ -52,6 +58,8 @@ const fetchTermsAndConditions = async (url) => {
     } catch (error) {
         console.error(error);
         return 'Error fetching the website. Please check the URL or try again later.';
+    } finally {
+        if (browser) await browser.close();
     }
 };
 
