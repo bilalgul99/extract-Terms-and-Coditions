@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-commerce Terms Fetcher</title>
+</head>
+<body>
+    <h1>E-commerce Terms Fetcher</h1>
+    <input type="text" id="urlInput" placeholder="Enter e-commerce website URL">
+    <button onclick="fetchTerms()">Fetch Terms</button>
+    <div id="result"></div>
+
+    <script>
+        async function fetchTerms() {
+            const url = document.getElementById('urlInput').value;
+            const response = await fetch('/fetch-terms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const data = await response.json();
+            document.getElementById('result').innerText = data.terms || data.error;
+        }
+    </script>
+</body>
+</html>

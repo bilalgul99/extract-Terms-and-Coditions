@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-commerce Terms Fetcher</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        #terms { white-space: pre-wrap; background: #f5f5f5; padding: 10px; margin-top: 20px; border: 1px solid #ddd; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fetch E-commerce Terms and Conditions</h1>
+        <form id="urlForm">
+            <label for="url">Enter E-commerce Website URL:</label><br>
+            <input type="text" id="url" name="url" placeholder="https://example.com" required style="width: 100%; padding: 10px; margin-top: 10px;"><br><br>
+            <button type="submit">Fetch Terms and Conditions</button>
+        </form>
+
+        <div id="terms"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('urlForm');
+        const termsDiv = document.getElementById('terms');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            termsDiv.innerHTML = 'Fetching...';
+
+            const url = document.getElementById('url').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/fetch-terms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                termsDiv.innerHTML = `<h3>Terms and Conditions:</h3><p>${data.terms}</p>`;
+            } catch (error) {
+                termsDiv.innerHTML = 'Error fetching terms and conditions.';
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
